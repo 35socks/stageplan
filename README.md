@@ -35,7 +35,8 @@ A static web app for building **stage plots** and **channel / input lists** for 
 - If you don't link a channel, you can give it a plain-text position (e.g. "FOH") instead.
 
 **Projects and output**
-- Multiple projects per browser: new, open, duplicate and delete.
+- A **Projects** home screen shows every project in this browser as a card with a live stage thumbnail. You can search, open, duplicate, save to file or delete from there.
+- A **New Project** sheet asks for the show details and stage size up front, and offers four starting points: *Blank*, *Five-piece band*, *Acoustic duo* and *Singer + tracks*.
 - Autosave to localStorage, with a save-status indicator in the header.
 - JSON backup and restore of the whole editable project.
 - Print views for the **stage plot**, the **channel list**, or a **combined production pack**, all A4 or US Letter landscape.
@@ -44,12 +45,13 @@ A static web app for building **stage plots** and **channel / input lists** for 
 
 ## Using it
 
-1. **Project tab:** enter the show name, artist, venue, date, stage size (or pick a preset), contact details and production notes.
-2. **Stage Plot tab:** click library items to add them, then drag them into place. Select an item to edit it in the panel on the right.
-3. **Channel List tab:** add channels with the quick-add buttons or *Add channel*, then fill in the cells. Use the *Stage position* column to link a channel to a stage item.
-4. **Print / PDF** (toolbar): choose *Combined*, *Stage plot* or *Channel list*, choose what to include, then click *Open print dialog*.
+1. **New Project** (on the Projects screen): pick a starting point, enter the show name, artist, venue and date, choose a stage size, then press **Create** or Return.
+2. **Stage:** click library items to add them, or drag them onto the stage. Select an item to edit it in the properties panel. On a laptop-sized window that panel slides in from the right. On a phone it's a bottom sheet, and the **+** button opens the library.
+3. **Inputs:** use the *Quick add* chips or **Add Input**, then fill in the cells. The *Position* column links an input to a stage item.
+4. **Details:** contact, production notes and stage size. You can also save the project file, duplicate, clear or delete the project here.
+5. **Print** (toolbar): choose *Production pack*, *Stage plot* or *Input list*, set the options, then **Continue** to the browser's print dialog.
 
-To see a finished example, click **Load demo** on the Project tab, or use the button on the empty stage. The demo opens as a separate project and never overwrites yours.
+**Projects** (top left) goes back to all your projects. The share button (□↑) holds export, import, duplicate and keyboard shortcuts. To see a finished example, choose **Explore a demo** on the welcome screen. It's added as its own project and never replaces yours.
 
 ### Keyboard shortcuts
 
@@ -58,6 +60,9 @@ To see a finished example, click **Load demo** on the Project tab, or use the bu
 | Anywhere | Ctrl/⌘ Z · Ctrl/⌘ Shift Z (or Ctrl Y) | Undo / redo (outside text fields) |
 | Anywhere | Ctrl/⌘ S | Save now (to the browser) |
 | Anywhere | Ctrl/⌘ P | Open the print dialog |
+| Editor | 1 · 2 · 3 | Stage / Inputs / Details |
+| Anywhere | ? | Show all keyboard shortcuts |
+| Stage | Ctrl/⌘ + · − · 0 (or pinch / Ctrl-scroll) | Zoom in / out / fit |
 | Stage item focused | Arrow keys | Nudge 25 cm (5 cm with snap off). Hold Shift for 1 m |
 | Stage item focused | R / Shift R | Rotate +15° / −15° |
 | Stage item focused | Del / Backspace | Delete the item (undo available) |
@@ -69,6 +74,26 @@ To see a finished example, click **Load demo** on the Project tab, or use the bu
 
 ---
 
+## Design and accessibility
+
+The interface follows Apple's Human Interface Guidelines and uses the *Liquid Glass* look: translucent, blurred panels with a specular edge, over a softly lit background.
+
+- **Materials:** panels, toolbars, menus and sheets use `backdrop-filter` blur and saturation, a gradient rim that catches the light, and a sheen that follows the pointer.
+- **Motion:** buttons, chips and library tiles respond to hover and press with springy scale and lift. Project cards tilt in 3D toward the pointer. The tab control has a sliding thumb. Sheets, menus and toasts spring in, and switching views cross-fades with View Transitions where the browser supports them.
+- **Light and dark appearance:** follows the system setting by default. The ◐ button cycles Automatic, Light and Dark, and the choice is applied before first paint so there's no flash of the wrong theme. The stage canvas and thumbnails re-render to match.
+- **Responsive layout:** three floating panels on desktop; a slide-over properties panel on laptops and tablets; on phones, a floating tab bar, an add button that opens a library sheet, a bottom sheet for item properties, and input rows that become labelled cards.
+- **Accessibility:**
+  - Every control has an accessible name, and the automated tests check this on every screen.
+  - Focus rings are visible.
+  - Tabs, radio groups and menus follow the ARIA patterns, with arrow keys, Home/End and Escape returning focus.
+  - Dialogs and sheets are native `<dialog>` elements, so focus is contained and restored.
+  - Moves, rotation, zoom and reordering are announced through a live region.
+  - Invalid inputs are flagged with `aria-invalid`.
+  - Toasts pause while hovered or focused, so there's time to press Undo.
+  - Touch targets are 40 px or larger on touch screens.
+  - The app respects *Reduce Motion*, *Reduce Transparency* (glass becomes solid), *Increase Contrast* and Windows High Contrast (forced colours).
+  - Destructive alerts put the focus on **Cancel**.
+
 ## Printing and saving PDFs
 
 StagePlan does **not** create PDF files by itself. It builds clean print pages and opens your browser's print dialog, where you save the PDF:
@@ -77,6 +102,8 @@ StagePlan does **not** create PDF files by itself. It builds clean print pages a
 2. Click **Open print dialog**.
 3. For the destination, choose **Save as PDF** (Chrome/Edge/Brave), **PDF → Save as PDF** (macOS Safari), or **Microsoft Print to PDF** (Windows).
 4. For the cleanest result, turn off the browser's *Headers and footers* and turn on *Background graphics*.
+
+Print pages are always plain black on white. They ignore the app's appearance setting and glass effects.
 
 The print pages are white with black text and no editor controls. The stage plot keeps item positions, labels and channel tags, and you can add a key table of items. In the channel list, header rows repeat on each page and rows are never split across pages. Chromium-based browsers also print "Page X of Y" numbers. The suggested PDF filename comes from the artist, document type and date.
 
@@ -176,7 +203,7 @@ All icons are **original** line drawings on a 24×24 grid, in a style similar to
 
 | Need | Approach | Why not a library |
 |---|---|---|
-| Styling | Hand-written CSS with custom properties | Tailwind would need a build step or the Play CDN, which isn't meant for production |
+| Styling | Hand-written CSS with custom properties (glass materials, themes, spring easing) | Tailwind would need a build step or the Play CDN, which isn't meant for production |
 | Icons | Inline original SVG | No dependency, works offline, easy to recolour for print |
 | Row reordering | Native HTML drag-and-drop, plus buttons and keyboard | SortableJS isn't needed for one table, and buttons work on touch screens |
 | PDF | Print stylesheet + `window.print()` → "Save as PDF" | More reliable text and vector output than jsPDF, and nothing extra to download |
@@ -195,5 +222,7 @@ Projects are saved in your browser's **localStorage**, on this device and in thi
 - **Touch:** dragging items on the stage works on touch screens. Dragging channel rows needs a mouse, so on tablets and phones use the ↑/↓ buttons instead.
 - **Phones:** the whole stage is fitted to the screen width, so items are small. Pinch-zoom is turned off on the canvas so items can be dragged. For precise placement, use the *Across* / *From front* fields in the properties panel.
 - **One link per channel:** a channel links to one stage item. That covers the normal case of one input from one source.
+- **Glass effects** need `backdrop-filter`, which current Chrome, Edge, Safari and Firefox all support. Older browsers show solid panels instead. View-transition animations are Chromium/Safari only, and other browsers switch views instantly.
+- **Fonts:** Apple devices get SF Pro through the system font. Other platforms use their own system UI font (Segoe UI, Roboto and so on), and no web fonts are downloaded.
 - **Shared browser storage:** if the same project is open in two tabs, the most recent save wins. The other tab picks up the change when it's idle.
 - **Storage space:** localStorage typically holds about 5 MB per site, which is plenty for hundreds of projects. If it fills up, the header shows *Not saved* and you should export JSON.

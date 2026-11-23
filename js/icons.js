@@ -42,6 +42,19 @@
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
     reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M9 9l6 6M15 9l-6 6"/>',
     open: '<path d="M3 6h6l2 2h10v3"/><path d="M3 6v13h15l3-8H7l-4 8"/>',
+    chevronLeft: '<path d="m15 18-6-6 6-6"/>',
+    chevronRight: '<path d="m9 18 6-6-6-6"/>',
+    share: '<path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    autoTheme: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',
+    more: '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
+    minus: '<path d="M5 12h14"/>',
+    keyboard: '<rect x="2" y="6" width="20" height="12" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+    sidebar: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M15 4v16"/>',
+    fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+    doc: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+    library: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
   };
 
   // ------------------------------------------------------- stage item icons
@@ -75,14 +88,14 @@
   };
 
   const CATEGORIES = [
-    { id: 'people', name: 'Performers', color: '#e8a838' },
-    { id: 'vocals', name: 'Mics & stands', color: '#4fb3e8' },
-    { id: 'drums', name: 'Drums & percussion', color: '#e8704f' },
-    { id: 'strings', name: 'Guitar & bass', color: '#8fd14f' },
-    { id: 'keys', name: 'Keys & playback', color: '#b183e8' },
-    { id: 'monitors', name: 'Monitoring & DI', color: '#46d6b0' },
-    { id: 'pa', name: 'PA & power', color: '#a3acba' },
-    { id: 'misc', name: 'Staging & custom', color: '#c9c9c9' },
+    { id: 'people', name: 'Performers', color: '#ff9f0a' },
+    { id: 'vocals', name: 'Mics & stands', color: '#64d2ff' },
+    { id: 'drums', name: 'Drums & percussion', color: '#ff6b5e' },
+    { id: 'strings', name: 'Guitar & bass', color: '#30d158' },
+    { id: 'keys', name: 'Keys & playback', color: '#bf5af2' },
+    { id: 'monitors', name: 'Monitoring & DI', color: '#40c8e0' },
+    { id: 'pa', name: 'PA & power', color: '#7d7aff' },
+    { id: 'misc', name: 'Staging & custom', color: '#aeaeb2' },
   ];
 
   // w/h are default footprint in metres; shape is the body drawn on the plot.
@@ -131,13 +144,13 @@
 
   /** Inline SVG string for a UI icon. */
   function uiIcon(name, cls) {
-    return '<svg class="icon' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (UI[name] || UI.info) + '</svg>';
+    return '<svg class="icon' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' + (UI[name] || UI.info) + '</svg>';
   }
 
   /** Inline SVG string for an item-type icon (used in library + selects). */
   function itemIcon(typeId, cls) {
     const t = TYPE_MAP[typeId] || TYPE_MAP.generic;
-    return '<svg class="icon' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ITEM_ICONS[t.icon] + '</svg>';
+    return '<svg class="icon' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ITEM_ICONS[t.icon] + '</svg>';
   }
 
   window.StageIcons = { UI, ITEM_ICONS, CATEGORIES, CAT_MAP, ITEM_TYPES, TYPE_MAP, uiIcon, itemIcon };

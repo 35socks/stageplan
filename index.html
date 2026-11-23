@@ -2,256 +2,410 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StagePlan — Stage Plot &amp; Input List Builder</title>
-  <meta name="description" content="Build, print and share live-show stage plots and channel/input lists. Runs entirely in your browser.">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#121417">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>StagePlan</title>
+  <meta name="description" content="Design stage plots and input lists for live shows, then print or save them as PDF. Runs entirely in your browser.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0b0f" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script>
+    // Apply the saved appearance before first paint so there is no flash of the wrong theme.
+    (function () {
+      var t = 'system';
+      try { t = (JSON.parse(localStorage.getItem('stageplan.prefs') || '{}').theme) || 'system'; } catch (e) {}
+      var dark = t === 'dark' || (t === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="ambient" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
   <a class="skip-link" href="#main">Skip to content</a>
+  <div id="sr-announce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-  <header class="app-header">
-    <div class="brand">
-      <img src="assets/favicon.svg" alt="" width="26" height="26">
-      <span class="brand-name">StagePlan</span>
-    </div>
-
-    <div class="project-title" title="Current project">
-      <span id="hdr-name" class="project-name">Untitled show</span>
-      <span id="hdr-sub" class="project-sub"></span>
-    </div>
-
-    <nav class="tabs" role="tablist" aria-label="Work areas">
-      <button class="tab" role="tab" id="tab-stage" aria-controls="panel-stage" aria-selected="true" data-tab="stage"><span data-icon="stage"></span><span>Stage Plot</span></button>
-      <button class="tab" role="tab" id="tab-channels" aria-controls="panel-channels" aria-selected="false" tabindex="-1" data-tab="channels"><span data-icon="list"></span><span>Channel List</span><span id="tab-ch-count" class="count"></span></button>
-      <button class="tab" role="tab" id="tab-project" aria-controls="panel-project" aria-selected="false" tabindex="-1" data-tab="project"><span data-icon="sliders"></span><span>Project</span></button>
-    </nav>
-
-    <div class="toolbar" role="toolbar" aria-label="Project actions">
-      <button class="btn icon-only" id="btn-undo" title="Undo (Ctrl/⌘+Z)" aria-label="Undo"><span data-icon="undo"></span></button>
-      <button class="btn icon-only" id="btn-redo" title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><span data-icon="redo"></span></button>
-      <span id="save-status" class="save-status" role="status" aria-live="polite">Saved</span>
-      <button class="btn" id="btn-import-json" title="Open a project from a JSON backup file"><span data-icon="upload"></span><span class="lbl">Open JSON</span></button>
-      <button class="btn" id="btn-export-json" title="Download this project as a JSON backup"><span data-icon="download"></span><span class="lbl">Save JSON</span></button>
-      <button class="btn primary" id="btn-print" title="Print or save as PDF"><span data-icon="printer"></span><span class="lbl">Print / PDF</span></button>
-    </div>
-  </header>
-
-  <main id="main">
-    <!-- ============================================================ STAGE -->
-    <section id="panel-stage" class="panel panel-stage" role="tabpanel" aria-labelledby="tab-stage">
-      <aside class="library" aria-label="Item library">
-        <div class="side-head">
-          <h2>Item library</h2>
-          <p class="hint">Click to add, or drag onto the stage.</p>
-        </div>
-        <label class="search">
-          <span data-icon="search"></span>
-          <input type="search" id="lib-search" placeholder="Find item…" aria-label="Filter item library">
-        </label>
-        <div id="library-list" class="library-list"></div>
-      </aside>
-
-      <div class="canvas-area">
-        <div class="canvas-toolbar" role="toolbar" aria-label="Stage view options">
-          <button class="btn small toggle" id="tg-grid" aria-pressed="true" title="Show grid"><span data-icon="grid"></span><span>Grid</span></button>
-          <button class="btn small toggle" id="tg-snap" aria-pressed="true" title="Snap to 25 cm grid while dragging (hold Alt to bypass)"><span data-icon="magnet"></span><span>Snap</span></button>
-          <button class="btn small toggle" id="tg-dims" aria-pressed="true" title="Show stage dimensions"><span data-icon="ruler"></span><span>Dimensions</span></button>
-          <button class="btn small toggle" id="tg-badges" aria-pressed="true" title="Show linked channel numbers on items"><span data-icon="link"></span><span>Channel tags</span></button>
-          <span class="spacer"></span>
-          <button class="btn small" id="btn-stage-size" title="Edit stage size in Project settings"><span id="stage-size-label">8 × 6 m</span></button>
-        </div>
-        <div class="canvas-wrap" id="canvas-wrap">
-          <svg id="stage-svg" class="stage-svg" role="application" aria-label="Stage plot canvas. Select an item and use arrow keys to move it." xmlns="http://www.w3.org/2000/svg"></svg>
-          <div id="canvas-empty" class="canvas-empty" hidden>
-            <p><strong>Empty stage.</strong> Add items from the library, or load the demo project from the Project tab.</p>
-          </div>
-        </div>
-        <p class="canvas-help">Drag to move · Arrow keys nudge (Shift = 1 m) · <kbd>R</kbd> rotate · <kbd>Del</kbd> remove · <kbd>Ctrl/⌘ D</kbd> duplicate · <kbd>Esc</kbd> deselect</p>
+  <!-- ================================================================ HOME -->
+  <div id="view-home" class="view view-home">
+    <header class="home-bar">
+      <div class="brand">
+        <img src="assets/favicon.svg" alt="" width="28" height="28">
+        <span>StagePlan</span>
       </div>
-
-      <aside class="inspector" id="inspector" aria-label="Item properties"></aside>
-    </section>
-
-    <!-- ========================================================= CHANNELS -->
-    <section id="panel-channels" class="panel panel-channels" role="tabpanel" aria-labelledby="tab-channels" hidden>
-      <div class="ch-toolbar">
-        <button class="btn primary" id="btn-add-channel"><span data-icon="plus"></span><span>Add channel</span></button>
-        <label class="search">
-          <span data-icon="search"></span>
-          <input type="search" id="ch-search" placeholder="Filter channels…" aria-label="Filter channels">
-        </label>
-        <label class="check"><input type="checkbox" id="ch-warnings" checked> Show warnings</label>
-        <span class="spacer"></span>
-        <button class="btn" id="btn-import-csv" title="Import channel list from CSV"><span data-icon="upload"></span><span>Import CSV</span></button>
-        <button class="btn" id="btn-export-csv" title="Download channel list as CSV"><span data-icon="download"></span><span>Export CSV</span></button>
-        <button class="btn danger-ghost" id="btn-clear-channels" title="Delete all channels"><span data-icon="trash"></span><span>Clear list</span></button>
+      <div class="home-actions">
+        <button type="button" class="btn glass icon-only theme-toggle" aria-label="Appearance"><span data-icon="autoTheme"></span></button>
+        <button type="button" class="btn glass js-open-json"><span data-icon="upload"></span><span class="lbl">Open File</span></button>
+        <button type="button" class="btn primary js-new-project"><span data-icon="plus"></span><span>New Project</span></button>
       </div>
+    </header>
 
-      <details class="quick-add" open>
-        <summary>Quick add common sources</summary>
-        <div id="quick-add" class="quick-add-list"></div>
-      </details>
-
-      <div id="ch-warning-summary" class="warning-summary" role="status" aria-live="polite"></div>
-
-      <div class="table-wrap">
-        <table class="ch-table" id="ch-table">
-          <caption class="sr-only">Channel / input list</caption>
-          <thead>
-            <tr>
-              <th class="c-grip"><span class="sr-only">Reorder</span></th>
-              <th class="c-num" scope="col">Ch</th>
-              <th class="c-name" scope="col">Input / source name</th>
-              <th class="c-src" scope="col">Instrument / details</th>
-              <th class="c-mic" scope="col">Mic / DI</th>
-              <th class="c-stand" scope="col">Stand / placement</th>
-              <th class="c-48" scope="col"><abbr title="Phantom power">48V</abbr></th>
-              <th class="c-pos" scope="col">Stage position / musician</th>
-              <th class="c-mon" scope="col">Monitor / bus</th>
-              <th class="c-notes" scope="col">Notes</th>
-              <th class="c-act" scope="col"><span class="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody id="ch-body"></tbody>
-        </table>
-        <div id="ch-empty" class="empty-state" hidden>
-          <h3>No channels yet</h3>
-          <p>Use <strong>Add channel</strong>, the quick-add buttons above, or import a CSV. Channels are numbered automatically and can be dragged to reorder.</p>
+    <main id="main-home" class="home-main" tabindex="-1">
+      <section class="hero" id="home-hero" aria-labelledby="hero-title" hidden>
+        <p class="eyebrow">Stage plots &amp; input lists</p>
+        <h1 id="hero-title">Plan the show.<br><span class="hero-dim">Hand the crew one clean page.</span></h1>
+        <p class="hero-sub">Lay out the stage, build the input list and link the two. Then print a production pack your engineer can actually use. Everything stays on this device.</p>
+        <div class="hero-actions">
+          <button type="button" class="btn primary large js-new-project"><span data-icon="plus"></span><span>New Project</span></button>
+          <button type="button" class="btn glass large" id="btn-demo"><span data-icon="sparkle"></span><span>Explore a demo</span></button>
+          <button type="button" class="btn plain large js-open-json"><span>Open a project file</span><span data-icon="chevronRight"></span></button>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ========================================================== PROJECT -->
-    <section id="panel-project" class="panel panel-project" role="tabpanel" aria-labelledby="tab-project" hidden>
-      <div class="project-grid">
-        <form class="card" id="form-project" autocomplete="off" onsubmit="return false">
-          <h2>Show details</h2>
-          <div class="field-grid">
-            <label class="field span-2">Project / show name<input name="name" type="text" maxlength="120"></label>
-            <label class="field">Artist / band<input name="artist" type="text" maxlength="120"></label>
-            <label class="field">Venue<input name="venue" type="text" maxlength="120"></label>
-            <label class="field"><span>Date <span class="opt">(optional)</span></span><input name="date" type="date"></label>
-            <label class="field">Version / revision<input name="revision" type="text" maxlength="40" placeholder="e.g. v2 — Nov tour"></label>
-          </div>
-
-          <h2>Stage</h2>
-          <div class="field-grid">
-            <label class="field span-2">Stage size preset
-              <select id="stage-preset">
-                <option value="">Custom…</option>
-                <option value="5x4">Small club — 5 × 4 m</option>
-                <option value="6x4">Small stage — 6 × 4 m</option>
-                <option value="8x6">Medium stage — 8 × 6 m</option>
-                <option value="10x8">Large stage — 10 × 8 m</option>
-                <option value="12x8">Theatre — 12 × 8 m</option>
-                <option value="16x12">Festival — 16 × 12 m</option>
-              </select>
-            </label>
-            <label class="field">Width (m, across)<input name="stageWidth" type="number" min="2" max="40" step="0.5"></label>
-            <label class="field">Depth (m, front to back)<input name="stageDepth" type="number" min="2" max="30" step="0.5"></label>
-          </div>
-
-          <h2>Contact / engineer</h2>
-          <div class="field-grid">
-            <label class="field">Name<input name="contactName" type="text" maxlength="80"></label>
-            <label class="field">Role<input name="contactRole" type="text" maxlength="80" placeholder="e.g. FOH engineer"></label>
-            <label class="field">Phone<input name="contactPhone" type="tel" maxlength="40"></label>
-            <label class="field">Email<input name="contactEmail" type="email" maxlength="120"></label>
-          </div>
-
-          <h2>Production notes</h2>
-          <label class="field">
-            <span class="sr-only">Production notes</span>
-            <textarea name="notes" rows="7" placeholder="Changeover time, power requirements, backline supplied, hospitality, etc."></textarea>
+      <section class="home-section" id="home-projects" aria-labelledby="projects-title">
+        <div class="section-head">
+          <h1 class="large-title" id="projects-title">Projects</h1>
+          <label class="search glass-field">
+            <span data-icon="search"></span>
+            <input type="search" id="project-search" placeholder="Search" aria-label="Search projects">
           </label>
-        </form>
-
-        <div class="side-col">
-          <section class="card">
-            <h2>Projects on this device</h2>
-            <div class="btn-row">
-              <button class="btn primary" id="btn-new-project"><span data-icon="filePlus"></span><span>New project</span></button>
-              <button class="btn" id="btn-dup-project"><span data-icon="copy"></span><span>Duplicate</span></button>
-              <button class="btn" id="btn-demo"><span data-icon="sparkle"></span><span>Load demo</span></button>
-            </div>
-            <ul id="project-list" class="project-list"></ul>
-          </section>
-
-          <section class="card">
-            <h2>Backup &amp; transfer</h2>
-            <p class="muted">Projects auto-save in this browser only. Download a JSON backup to move a project to another device or share it with a venue.</p>
-            <div class="btn-row">
-              <button class="btn" id="btn-export-json-2"><span data-icon="download"></span><span>Save JSON backup</span></button>
-              <button class="btn" id="btn-import-json-2"><span data-icon="upload"></span><span>Open JSON backup</span></button>
-            </div>
-          </section>
-
-          <section class="card danger-card">
-            <h2>Reset</h2>
-            <p class="muted">Clear all stage items and channels from this project. Show details are kept.</p>
-            <button class="btn danger" id="btn-reset-project"><span data-icon="reset"></span><span>Clear stage &amp; channels</span></button>
-          </section>
-
-          <section class="card">
-            <h2>Privacy</h2>
-            <p class="muted">Everything stays on this device in your browser's local storage. Nothing is uploaded. Clearing your browser data will remove saved projects — keep JSON backups.</p>
-          </section>
         </div>
+        <ul class="project-grid" id="project-grid"></ul>
+        <p class="home-empty" id="home-no-results" hidden>No projects match your search.</p>
+      </section>
+
+      <footer class="home-foot">
+        <p>Projects are saved in this browser only. Nothing is uploaded. Save a project file to back up or share.</p>
+        <button type="button" class="btn plain small js-shortcuts"><span data-icon="keyboard"></span><span>Keyboard shortcuts</span></button>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ============================================================== EDITOR -->
+  <div id="view-editor" class="view view-editor" hidden>
+    <header class="tool-bar">
+      <div class="tb-left">
+        <button type="button" class="btn glass pill" id="btn-home" aria-label="All projects"><span data-icon="chevronLeft"></span><span class="lbl">Projects</span></button>
+        <button type="button" class="doc-title" id="btn-doc-title" title="Show details">
+          <span id="hdr-name" class="doc-name">Untitled show</span>
+          <span id="hdr-sub" class="doc-sub"></span>
+        </button>
       </div>
-    </section>
-  </main>
+
+      <nav class="segmented glass" id="seg" role="tablist" aria-label="Workspace">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button class="seg-btn" role="tab" id="tab-stage" aria-controls="panel-stage" aria-selected="true" data-tab="stage"><span data-icon="stage"></span><span>Stage</span></button>
+        <button class="seg-btn" role="tab" id="tab-channels" aria-controls="panel-channels" aria-selected="false" tabindex="-1" data-tab="channels"><span data-icon="list"></span><span>Inputs</span><span id="tab-ch-count" class="count"></span></button>
+        <button class="seg-btn" role="tab" id="tab-project" aria-controls="panel-project" aria-selected="false" tabindex="-1" data-tab="project"><span data-icon="sliders"></span><span>Details</span></button>
+      </nav>
+
+      <div class="tb-right">
+        <div class="btn-group glass" role="group" aria-label="History">
+          <button type="button" class="btn ghost icon-only" id="btn-undo" title="Undo (⌘Z)" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z"><span data-icon="undo"></span></button>
+          <button type="button" class="btn ghost icon-only" id="btn-redo" title="Redo (⇧⌘Z)" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z"><span data-icon="redo"></span></button>
+        </div>
+        <span id="save-status" class="save-status" role="status" aria-live="polite">Saved</span>
+        <button type="button" class="btn glass icon-only theme-toggle" aria-label="Appearance"><span data-icon="autoTheme"></span></button>
+        <button type="button" class="btn glass icon-only" id="btn-export-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-export" aria-label="Share and export" title="Share & export"><span data-icon="share"></span></button>
+        <button type="button" class="btn primary" id="btn-print" aria-keyshortcuts="Control+P Meta+P"><span data-icon="printer"></span><span class="lbl">Print</span></button>
+      </div>
+    </header>
+
+    <div class="menu glass" id="menu-export" role="menu" aria-label="Share and export" popover>
+      <button type="button" role="menuitem" data-menu="print"><span data-icon="printer"></span><span>Print or Save as PDF…</span><kbd>⌘P</kbd></button>
+      <hr role="separator">
+      <button type="button" role="menuitem" data-menu="json"><span data-icon="download"></span><span>Save Project File</span></button>
+      <button type="button" role="menuitem" data-menu="csv-export"><span data-icon="table"></span><span>Export Inputs as CSV</span></button>
+      <button type="button" role="menuitem" data-menu="csv-import"><span data-icon="upload"></span><span>Import Inputs from CSV…</span></button>
+      <hr role="separator">
+      <button type="button" role="menuitem" data-menu="duplicate"><span data-icon="copy"></span><span>Duplicate Project</span></button>
+      <button type="button" role="menuitem" data-menu="shortcuts"><span data-icon="keyboard"></span><span>Keyboard Shortcuts</span><kbd>?</kbd></button>
+    </div>
+
+    <main id="main" class="editor-main" tabindex="-1">
+      <!-- ============================================================ STAGE -->
+      <section id="panel-stage" class="panel panel-stage" role="tabpanel" aria-labelledby="tab-stage">
+        <aside class="float-panel glass library-panel" aria-labelledby="lib-title">
+          <div class="panel-scroll">
+            <div class="panel-head">
+              <h2 id="lib-title">Library</h2>
+              <p class="hint">Click to add, or drag onto the stage.</p>
+            </div>
+            <label class="search glass-field">
+              <span data-icon="search"></span>
+              <input type="search" id="lib-search" placeholder="Search items" aria-label="Search item library">
+            </label>
+            <div id="library-list" class="library-list"></div>
+          </div>
+        </aside>
+
+        <div class="canvas-area">
+          <div class="canvas-wrap" id="canvas-wrap">
+            <svg id="stage-svg" class="stage-svg" role="application" aria-roledescription="stage plot" aria-label="Stage plot. Tab to an item, then use the arrow keys to move it." xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+          <div id="canvas-empty" class="canvas-empty glass" hidden></div>
+
+          <div class="hud glass" role="toolbar" aria-label="Canvas">
+            <button type="button" class="btn ghost small toggle" id="tg-grid" aria-pressed="true" title="Grid"><span data-icon="grid"></span><span class="lbl">Grid</span></button>
+            <button type="button" class="btn ghost small toggle" id="tg-snap" aria-pressed="true" title="Snap to 25 cm (hold ⌥ to bypass)"><span data-icon="magnet"></span><span class="lbl">Snap</span></button>
+            <button type="button" class="btn ghost small toggle" id="tg-dims" aria-pressed="true" title="Dimensions"><span data-icon="ruler"></span><span class="lbl">Size</span></button>
+            <button type="button" class="btn ghost small toggle" id="tg-badges" aria-pressed="true" title="Channel tags"><span data-icon="link"></span><span class="lbl">Tags</span></button>
+            <span class="hud-sep" aria-hidden="true"></span>
+            <button type="button" class="btn ghost small icon-only" id="zoom-out" aria-label="Zoom out" title="Zoom out (⌘−)"><span data-icon="minus"></span></button>
+            <button type="button" class="btn ghost small zoom-val" id="zoom-reset" aria-label="Reset zoom" title="Fit to window (⌘0)">100%</button>
+            <button type="button" class="btn ghost small icon-only" id="zoom-in" aria-label="Zoom in" title="Zoom in (⌘+)"><span data-icon="plus"></span></button>
+            <span class="hud-sep" aria-hidden="true"></span>
+            <button type="button" class="btn ghost small" id="btn-stage-size" title="Change stage size"><span id="stage-size-label">8 × 6 m</span></button>
+            <button type="button" class="btn ghost small icon-only" id="btn-inspector-toggle" aria-label="Show item list and properties" aria-pressed="false" title="Items & properties"><span data-icon="sidebar"></span></button>
+          </div>
+
+          <button type="button" class="fab primary" id="btn-add-mobile" aria-label="Add item to stage"><span data-icon="plus"></span></button>
+        </div>
+
+        <aside class="float-panel glass inspector-panel" id="inspector-panel" aria-label="Item properties">
+          <div class="panel-scroll" id="inspector"></div>
+        </aside>
+      </section>
+
+      <!-- ========================================================= CHANNELS -->
+      <section id="panel-channels" class="panel panel-channels" role="tabpanel" aria-labelledby="tab-channels" hidden>
+        <div class="page">
+          <div class="page-head">
+            <div>
+              <h1 class="large-title">Inputs</h1>
+              <p class="page-sub" id="ch-subtitle"></p>
+            </div>
+            <div class="page-actions">
+              <label class="search glass-field">
+                <span data-icon="search"></span>
+                <input type="search" id="ch-search" placeholder="Filter" aria-label="Filter inputs">
+              </label>
+              <button type="button" class="btn primary" id="btn-add-channel" aria-keyshortcuts="Enter"><span data-icon="plus"></span><span>Add Input</span></button>
+            </div>
+          </div>
+
+          <div class="quick-add">
+            <span class="quick-label" id="quick-label">Quick add</span>
+            <div id="quick-add" class="chip-row" role="group" aria-labelledby="quick-label"></div>
+          </div>
+
+          <div class="list-bar">
+            <div id="ch-warning-summary" class="warning-summary" role="status" aria-live="polite"></div>
+            <span class="spacer"></span>
+            <label class="switch"><input type="checkbox" id="ch-warnings" role="switch" checked><span class="switch-track" aria-hidden="true"></span><span>Warnings</span></label>
+            <button type="button" class="btn plain small" id="btn-import-csv"><span data-icon="upload"></span><span>Import CSV</span></button>
+            <button type="button" class="btn plain small" id="btn-export-csv"><span data-icon="download"></span><span>Export CSV</span></button>
+            <button type="button" class="btn plain small destructive" id="btn-clear-channels"><span data-icon="trash"></span><span>Clear</span></button>
+          </div>
+
+          <div class="table-card glass">
+            <div class="table-wrap">
+              <table class="ch-table" id="ch-table">
+                <caption class="sr-only">Input list. Use the grip button with the arrow keys, or Alt plus arrow keys, to reorder.</caption>
+                <thead>
+                  <tr>
+                    <th class="c-grip"><span class="sr-only">Reorder</span></th>
+                    <th class="c-num" scope="col">Ch</th>
+                    <th class="c-name" scope="col">Input</th>
+                    <th class="c-src" scope="col">Instrument</th>
+                    <th class="c-mic" scope="col">Mic / DI</th>
+                    <th class="c-stand" scope="col">Stand</th>
+                    <th class="c-48" scope="col"><abbr title="Phantom power">48V</abbr></th>
+                    <th class="c-pos" scope="col">Position</th>
+                    <th class="c-mon" scope="col">Monitor</th>
+                    <th class="c-notes" scope="col">Notes</th>
+                    <th class="c-act" scope="col"><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="ch-body"></tbody>
+              </table>
+            </div>
+            <div id="ch-empty" class="empty-state" hidden>
+              <div class="empty-icon"><span data-icon="list"></span></div>
+              <h3>No inputs yet</h3>
+              <p>Tap a Quick add source above, use <strong>Add Input</strong>, or import a CSV. Inputs number themselves and can be dragged into order.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================== DETAILS -->
+      <section id="panel-project" class="panel panel-project" role="tabpanel" aria-labelledby="tab-project" hidden>
+        <div class="page narrow">
+          <div class="page-head"><h1 class="large-title">Details</h1></div>
+
+          <form id="form-project" class="settings" autocomplete="off" onsubmit="return false">
+            <h2 class="group-title" id="g-show">Show</h2>
+            <div class="group glass" role="group" aria-labelledby="g-show">
+              <label class="row"><span class="row-label">Project name</span><input name="name" type="text" maxlength="120" required></label>
+              <label class="row"><span class="row-label">Artist</span><input name="artist" type="text" maxlength="120" placeholder="Band or artist"></label>
+              <label class="row"><span class="row-label">Venue</span><input name="venue" type="text" maxlength="120" placeholder="Optional"></label>
+              <label class="row"><span class="row-label">Date</span><input name="date" type="date"></label>
+              <label class="row"><span class="row-label">Revision</span><input name="revision" type="text" maxlength="40" placeholder="e.g. v2"></label>
+            </div>
+
+            <h2 class="group-title" id="g-stage">Stage</h2>
+            <div class="group glass" role="group" aria-labelledby="g-stage">
+              <div class="row row-stack">
+                <span class="row-label" id="preset-lbl">Size</span>
+                <div class="size-chips" id="stage-presets" role="radiogroup" aria-labelledby="preset-lbl"></div>
+              </div>
+              <label class="row"><span class="row-label">Width <span class="unit">m, across</span></span><input name="stageWidth" type="number" min="2" max="40" step="0.5" inputmode="decimal"></label>
+              <label class="row"><span class="row-label">Depth <span class="unit">m, front to back</span></span><input name="stageDepth" type="number" min="2" max="30" step="0.5" inputmode="decimal"></label>
+            </div>
+
+            <h2 class="group-title" id="g-contact">Contact</h2>
+            <div class="group glass" role="group" aria-labelledby="g-contact">
+              <label class="row"><span class="row-label">Name</span><input name="contactName" type="text" maxlength="80" autocomplete="name"></label>
+              <label class="row"><span class="row-label">Role</span><input name="contactRole" type="text" maxlength="80" placeholder="e.g. FOH engineer"></label>
+              <label class="row"><span class="row-label">Phone</span><input name="contactPhone" type="tel" maxlength="40" autocomplete="tel"></label>
+              <label class="row"><span class="row-label">Email</span><input name="contactEmail" type="email" maxlength="120" autocomplete="email"></label>
+            </div>
+
+            <h2 class="group-title" id="g-notes">Production notes</h2>
+            <div class="group glass" role="group" aria-labelledby="g-notes">
+              <label class="row row-stack"><span class="sr-only">Production notes</span><textarea name="notes" rows="6" placeholder="Changeover time, power, backline supplied, hospitality…"></textarea></label>
+            </div>
+          </form>
+
+          <h2 class="group-title" id="g-file">Project</h2>
+          <div class="group glass" role="group" aria-labelledby="g-file">
+            <button type="button" class="row row-btn" id="btn-export-json"><span data-icon="download"></span><span>Save Project File</span><span class="row-hint">.json backup</span></button>
+            <button type="button" class="row row-btn" id="btn-dup-project"><span data-icon="copy"></span><span>Duplicate Project</span></button>
+            <button type="button" class="row row-btn destructive" id="btn-reset-project"><span data-icon="reset"></span><span>Clear Stage &amp; Inputs…</span></button>
+            <button type="button" class="row row-btn destructive" id="btn-delete-project"><span data-icon="trash"></span><span>Delete Project…</span></button>
+          </div>
+          <p class="group-foot">Saved automatically in this browser. Nothing leaves your device unless you export it.</p>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <!-- Print views are generated into here on demand. -->
   <div id="print-root"></div>
 
-  <dialog id="dlg-print" class="dialog" aria-labelledby="dlg-print-title">
-    <form method="dialog" class="dialog-body" id="print-form">
-      <h2 id="dlg-print-title">Print / Save as PDF</h2>
-      <fieldset class="seg">
-        <legend>Document</legend>
-        <label><input type="radio" name="mode" value="combined" checked> Combined production pack <span class="muted">(stage plot, then channel list)</span></label>
-        <label><input type="radio" name="mode" value="stage"> Stage plot only</label>
-        <label><input type="radio" name="mode" value="channels"> Channel / input list only</label>
+  <!-- ============================================================ SHEETS -->
+  <dialog id="dlg-new" class="sheet" aria-labelledby="dlg-new-title">
+    <form method="dialog" id="new-form" class="sheet-body">
+      <header class="sheet-head">
+        <button type="submit" class="btn plain" value="cancel" formnovalidate>Cancel</button>
+        <h2 id="dlg-new-title">New Project</h2>
+        <button type="submit" class="btn primary small" value="create" id="btn-create">Create</button>
+      </header>
+
+      <fieldset class="template-picker">
+        <legend class="group-title">Start from</legend>
+        <div class="templates" id="templates"></div>
       </fieldset>
-      <fieldset class="seg">
-        <legend>Include</legend>
-        <label><input type="checkbox" name="notes" checked> Production notes</label>
-        <label><input type="checkbox" name="contact" checked> Contact details</label>
-        <label><input type="checkbox" name="key" checked> Stage item key (labels, notes, channels)</label>
-        <label><input type="checkbox" name="badges" checked> Channel numbers on stage plot</label>
-      </fieldset>
-      <label class="field">Paper size
-        <select name="paper">
-          <option value="A4">A4 landscape</option>
-          <option value="letter">US Letter landscape</option>
-        </select>
+
+      <h3 class="group-title" id="new-show-lbl">Show</h3>
+      <div class="group" role="group" aria-labelledby="new-show-lbl">
+        <label class="row"><span class="row-label">Project name</span><input name="name" type="text" maxlength="120" placeholder="e.g. Spring tour — Melbourne" required></label>
+        <label class="row"><span class="row-label">Artist</span><input name="artist" type="text" maxlength="120" placeholder="Optional"></label>
+        <label class="row"><span class="row-label">Venue</span><input name="venue" type="text" maxlength="120" placeholder="Optional"></label>
+        <label class="row"><span class="row-label">Date</span><input name="date" type="date"></label>
+      </div>
+
+      <h3 class="group-title" id="new-size-lbl">Stage size</h3>
+      <div class="size-chips wide" id="new-sizes" role="radiogroup" aria-labelledby="new-size-lbl"></div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-library" class="sheet sheet-bottom" aria-labelledby="dlg-lib-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <span></span>
+        <h2 id="dlg-lib-title">Add to Stage</h2>
+        <button type="button" class="btn plain" id="btn-lib-close">Done</button>
+      </header>
+      <label class="search glass-field">
+        <span data-icon="search"></span>
+        <input type="search" id="lib-search-sheet" placeholder="Search items" aria-label="Search item library">
       </label>
-      <p class="muted small">Your browser's print dialog will open. To get a PDF, choose <strong>“Save as PDF”</strong> (or “Microsoft Print to PDF”) as the destination. For best results, turn off browser headers/footers and enable background graphics.</p>
-      <div class="dialog-actions">
-        <button class="btn" value="cancel" formnovalidate>Cancel</button>
-        <button class="btn primary" value="print" id="btn-do-print"><span data-icon="printer"></span><span>Open print dialog</span></button>
+      <div id="library-sheet-list" class="library-list"></div>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-print" class="sheet" aria-labelledby="dlg-print-title">
+    <form method="dialog" class="sheet-body" id="print-form">
+      <header class="sheet-head">
+        <button type="submit" class="btn plain" value="cancel" formnovalidate>Cancel</button>
+        <h2 id="dlg-print-title">Print</h2>
+        <button type="submit" class="btn primary small" value="print" id="btn-do-print">Continue</button>
+      </header>
+      <fieldset class="group radio-group">
+        <legend class="group-title">Document</legend>
+        <label class="row"><input type="radio" name="mode" value="combined" checked><span><strong>Production pack</strong><span class="row-sub">Stage plot, then input list</span></span></label>
+        <label class="row"><input type="radio" name="mode" value="stage"><span><strong>Stage plot</strong></span></label>
+        <label class="row"><input type="radio" name="mode" value="channels"><span><strong>Input list</strong></span></label>
+      </fieldset>
+      <fieldset class="group">
+        <legend class="group-title">Include</legend>
+        <label class="row switch-row"><span>Production notes</span><span class="switch"><input type="checkbox" name="notes" role="switch" checked><span class="switch-track" aria-hidden="true"></span></span></label>
+        <label class="row switch-row"><span>Contact details</span><span class="switch"><input type="checkbox" name="contact" role="switch" checked><span class="switch-track" aria-hidden="true"></span></span></label>
+        <label class="row switch-row"><span>Stage item key</span><span class="switch"><input type="checkbox" name="key" role="switch" checked><span class="switch-track" aria-hidden="true"></span></span></label>
+        <label class="row switch-row"><span>Channel numbers on plot</span><span class="switch"><input type="checkbox" name="badges" role="switch" checked><span class="switch-track" aria-hidden="true"></span></span></label>
+      </fieldset>
+      <div class="group">
+        <label class="row"><span class="row-label">Paper</span>
+          <select name="paper">
+            <option value="A4">A4 landscape</option>
+            <option value="letter">US Letter landscape</option>
+          </select>
+        </label>
+      </div>
+      <p class="group-foot">Your browser's print dialog opens next. Choose <strong>Save as PDF</strong> as the destination to get a PDF file. Turn off headers and footers for the cleanest page.</p>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-shortcuts" class="sheet" aria-labelledby="dlg-sc-title">
+    <form method="dialog" class="sheet-body">
+      <header class="sheet-head">
+        <span></span>
+        <h2 id="dlg-sc-title">Keyboard Shortcuts</h2>
+        <button type="submit" class="btn plain" value="close">Done</button>
+      </header>
+      <div class="shortcuts">
+        <h3 class="group-title">Everywhere</h3>
+        <dl class="group">
+          <div class="row"><dt>Undo / Redo</dt><dd><kbd>⌘</kbd><kbd>Z</kbd> · <kbd>⇧</kbd><kbd>⌘</kbd><kbd>Z</kbd></dd></div>
+          <div class="row"><dt>Print or save PDF</dt><dd><kbd>⌘</kbd><kbd>P</kbd></dd></div>
+          <div class="row"><dt>Save now</dt><dd><kbd>⌘</kbd><kbd>S</kbd></dd></div>
+          <div class="row"><dt>Stage / Inputs / Details</dt><dd><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dd></div>
+          <div class="row"><dt>Show this list</dt><dd><kbd>?</kbd></dd></div>
+        </dl>
+        <h3 class="group-title">Stage (item focused)</h3>
+        <dl class="group">
+          <div class="row"><dt>Move 25 cm / 1 m</dt><dd><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> · with <kbd>⇧</kbd></dd></div>
+          <div class="row"><dt>Rotate ±15°</dt><dd><kbd>R</kbd> · <kbd>⇧</kbd><kbd>R</kbd></dd></div>
+          <div class="row"><dt>Duplicate</dt><dd><kbd>⌘</kbd><kbd>D</kbd></dd></div>
+          <div class="row"><dt>Rename</dt><dd><kbd>Return</kbd></dd></div>
+          <div class="row"><dt>Delete</dt><dd><kbd>⌫</kbd></dd></div>
+          <div class="row"><dt>Deselect</dt><dd><kbd>Esc</kbd></dd></div>
+          <div class="row"><dt>Zoom in / out / fit</dt><dd><kbd>⌘</kbd><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dd></div>
+          <div class="row"><dt>Place without snapping</dt><dd>hold <kbd>⌥</kbd> while dragging</dd></div>
+        </dl>
+        <h3 class="group-title">Inputs</h3>
+        <dl class="group">
+          <div class="row"><dt>Next row (adds one at the end)</dt><dd><kbd>Return</kbd></dd></div>
+          <div class="row"><dt>Move row</dt><dd><kbd>⌥</kbd><kbd>↑</kbd> · <kbd>⌥</kbd><kbd>↓</kbd></dd></div>
+        </dl>
+        <p class="group-foot">On Windows and Linux, use <kbd>Ctrl</kbd> for <kbd>⌘</kbd> and <kbd>Alt</kbd> for <kbd>⌥</kbd>.</p>
       </div>
     </form>
   </dialog>
 
-  <dialog id="dlg-confirm" class="dialog" aria-labelledby="dlg-confirm-title">
-    <form method="dialog" class="dialog-body">
+  <dialog id="dlg-confirm" class="alert" aria-labelledby="dlg-confirm-title" aria-describedby="dlg-confirm-msg">
+    <form method="dialog" class="alert-body">
       <h2 id="dlg-confirm-title"></h2>
       <p id="dlg-confirm-msg"></p>
-      <div class="dialog-actions" id="dlg-confirm-actions"></div>
+      <div class="alert-actions" id="dlg-confirm-actions"></div>
     </form>
   </dialog>
 
-  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+  <div class="menu glass" id="menu-card" role="menu" aria-label="Project actions" popover>
+    <button type="button" role="menuitem" data-card="open"><span data-icon="open"></span><span>Open</span></button>
+    <button type="button" role="menuitem" data-card="duplicate"><span data-icon="copy"></span><span>Duplicate</span></button>
+    <button type="button" role="menuitem" data-card="export"><span data-icon="download"></span><span>Save Project File</span></button>
+    <hr role="separator">
+    <button type="button" role="menuitem" data-card="delete" class="destructive"><span data-icon="trash"></span><span>Delete…</span></button>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
 
   <input type="file" id="file-json" accept=".json,application/json" hidden>
   <input type="file" id="file-csv" accept=".csv,text/csv,text/plain" hidden>
 
-  <noscript><p class="noscript">StagePlan needs JavaScript enabled to run. All processing happens locally in your browser.</p></noscript>
+  <noscript><p class="noscript">StagePlan needs JavaScript. Everything runs locally in your browser.</p></noscript>
 
   <script src="js/icons.js"></script>
   <script src="js/app.js"></script>
