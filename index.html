@@ -1,1 +1,259 @@
-test
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StagePlan — Stage Plot &amp; Input List Builder</title>
+  <meta name="description" content="Build, print and share live-show stage plots and channel/input lists. Runs entirely in your browser.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#121417">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <img src="assets/favicon.svg" alt="" width="26" height="26">
+      <span class="brand-name">StagePlan</span>
+    </div>
+
+    <div class="project-title" title="Current project">
+      <span id="hdr-name" class="project-name">Untitled show</span>
+      <span id="hdr-sub" class="project-sub"></span>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="Work areas">
+      <button class="tab" role="tab" id="tab-stage" aria-controls="panel-stage" aria-selected="true" data-tab="stage"><span data-icon="stage"></span><span>Stage Plot</span></button>
+      <button class="tab" role="tab" id="tab-channels" aria-controls="panel-channels" aria-selected="false" tabindex="-1" data-tab="channels"><span data-icon="list"></span><span>Channel List</span><span id="tab-ch-count" class="count"></span></button>
+      <button class="tab" role="tab" id="tab-project" aria-controls="panel-project" aria-selected="false" tabindex="-1" data-tab="project"><span data-icon="sliders"></span><span>Project</span></button>
+    </nav>
+
+    <div class="toolbar" role="toolbar" aria-label="Project actions">
+      <button class="btn icon-only" id="btn-undo" title="Undo (Ctrl/⌘+Z)" aria-label="Undo"><span data-icon="undo"></span></button>
+      <button class="btn icon-only" id="btn-redo" title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><span data-icon="redo"></span></button>
+      <span id="save-status" class="save-status" role="status" aria-live="polite">Saved</span>
+      <button class="btn" id="btn-import-json" title="Open a project from a JSON backup file"><span data-icon="upload"></span><span class="lbl">Open JSON</span></button>
+      <button class="btn" id="btn-export-json" title="Download this project as a JSON backup"><span data-icon="download"></span><span class="lbl">Save JSON</span></button>
+      <button class="btn primary" id="btn-print" title="Print or save as PDF"><span data-icon="printer"></span><span class="lbl">Print / PDF</span></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============================================================ STAGE -->
+    <section id="panel-stage" class="panel panel-stage" role="tabpanel" aria-labelledby="tab-stage">
+      <aside class="library" aria-label="Item library">
+        <div class="side-head">
+          <h2>Item library</h2>
+          <p class="hint">Click to add, or drag onto the stage.</p>
+        </div>
+        <label class="search">
+          <span data-icon="search"></span>
+          <input type="search" id="lib-search" placeholder="Find item…" aria-label="Filter item library">
+        </label>
+        <div id="library-list" class="library-list"></div>
+      </aside>
+
+      <div class="canvas-area">
+        <div class="canvas-toolbar" role="toolbar" aria-label="Stage view options">
+          <button class="btn small toggle" id="tg-grid" aria-pressed="true" title="Show grid"><span data-icon="grid"></span><span>Grid</span></button>
+          <button class="btn small toggle" id="tg-snap" aria-pressed="true" title="Snap to 25 cm grid while dragging (hold Alt to bypass)"><span data-icon="magnet"></span><span>Snap</span></button>
+          <button class="btn small toggle" id="tg-dims" aria-pressed="true" title="Show stage dimensions"><span data-icon="ruler"></span><span>Dimensions</span></button>
+          <button class="btn small toggle" id="tg-badges" aria-pressed="true" title="Show linked channel numbers on items"><span data-icon="link"></span><span>Channel tags</span></button>
+          <span class="spacer"></span>
+          <button class="btn small" id="btn-stage-size" title="Edit stage size in Project settings"><span id="stage-size-label">8 × 6 m</span></button>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap">
+          <svg id="stage-svg" class="stage-svg" role="application" aria-label="Stage plot canvas. Select an item and use arrow keys to move it." xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="canvas-empty" class="canvas-empty" hidden>
+            <p><strong>Empty stage.</strong> Add items from the library, or load the demo project from the Project tab.</p>
+          </div>
+        </div>
+        <p class="canvas-help">Drag to move · Arrow keys nudge (Shift = 1 m) · <kbd>R</kbd> rotate · <kbd>Del</kbd> remove · <kbd>Ctrl/⌘ D</kbd> duplicate · <kbd>Esc</kbd> deselect</p>
+      </div>
+
+      <aside class="inspector" id="inspector" aria-label="Item properties"></aside>
+    </section>
+
+    <!-- ========================================================= CHANNELS -->
+    <section id="panel-channels" class="panel panel-channels" role="tabpanel" aria-labelledby="tab-channels" hidden>
+      <div class="ch-toolbar">
+        <button class="btn primary" id="btn-add-channel"><span data-icon="plus"></span><span>Add channel</span></button>
+        <label class="search">
+          <span data-icon="search"></span>
+          <input type="search" id="ch-search" placeholder="Filter channels…" aria-label="Filter channels">
+        </label>
+        <label class="check"><input type="checkbox" id="ch-warnings" checked> Show warnings</label>
+        <span class="spacer"></span>
+        <button class="btn" id="btn-import-csv" title="Import channel list from CSV"><span data-icon="upload"></span><span>Import CSV</span></button>
+        <button class="btn" id="btn-export-csv" title="Download channel list as CSV"><span data-icon="download"></span><span>Export CSV</span></button>
+        <button class="btn danger-ghost" id="btn-clear-channels" title="Delete all channels"><span data-icon="trash"></span><span>Clear list</span></button>
+      </div>
+
+      <details class="quick-add" open>
+        <summary>Quick add common sources</summary>
+        <div id="quick-add" class="quick-add-list"></div>
+      </details>
+
+      <div id="ch-warning-summary" class="warning-summary" role="status" aria-live="polite"></div>
+
+      <div class="table-wrap">
+        <table class="ch-table" id="ch-table">
+          <caption class="sr-only">Channel / input list</caption>
+          <thead>
+            <tr>
+              <th class="c-grip"><span class="sr-only">Reorder</span></th>
+              <th class="c-num" scope="col">Ch</th>
+              <th class="c-name" scope="col">Input / source name</th>
+              <th class="c-src" scope="col">Instrument / details</th>
+              <th class="c-mic" scope="col">Mic / DI</th>
+              <th class="c-stand" scope="col">Stand / placement</th>
+              <th class="c-48" scope="col"><abbr title="Phantom power">48V</abbr></th>
+              <th class="c-pos" scope="col">Stage position / musician</th>
+              <th class="c-mon" scope="col">Monitor / bus</th>
+              <th class="c-notes" scope="col">Notes</th>
+              <th class="c-act" scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="ch-body"></tbody>
+        </table>
+        <div id="ch-empty" class="empty-state" hidden>
+          <h3>No channels yet</h3>
+          <p>Use <strong>Add channel</strong>, the quick-add buttons above, or import a CSV. Channels are numbered automatically and can be dragged to reorder.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== PROJECT -->
+    <section id="panel-project" class="panel panel-project" role="tabpanel" aria-labelledby="tab-project" hidden>
+      <div class="project-grid">
+        <form class="card" id="form-project" autocomplete="off" onsubmit="return false">
+          <h2>Show details</h2>
+          <div class="field-grid">
+            <label class="field span-2">Project / show name<input name="name" type="text" maxlength="120"></label>
+            <label class="field">Artist / band<input name="artist" type="text" maxlength="120"></label>
+            <label class="field">Venue<input name="venue" type="text" maxlength="120"></label>
+            <label class="field"><span>Date <span class="opt">(optional)</span></span><input name="date" type="date"></label>
+            <label class="field">Version / revision<input name="revision" type="text" maxlength="40" placeholder="e.g. v2 — Nov tour"></label>
+          </div>
+
+          <h2>Stage</h2>
+          <div class="field-grid">
+            <label class="field span-2">Stage size preset
+              <select id="stage-preset">
+                <option value="">Custom…</option>
+                <option value="5x4">Small club — 5 × 4 m</option>
+                <option value="6x4">Small stage — 6 × 4 m</option>
+                <option value="8x6">Medium stage — 8 × 6 m</option>
+                <option value="10x8">Large stage — 10 × 8 m</option>
+                <option value="12x8">Theatre — 12 × 8 m</option>
+                <option value="16x12">Festival — 16 × 12 m</option>
+              </select>
+            </label>
+            <label class="field">Width (m, across)<input name="stageWidth" type="number" min="2" max="40" step="0.5"></label>
+            <label class="field">Depth (m, front to back)<input name="stageDepth" type="number" min="2" max="30" step="0.5"></label>
+          </div>
+
+          <h2>Contact / engineer</h2>
+          <div class="field-grid">
+            <label class="field">Name<input name="contactName" type="text" maxlength="80"></label>
+            <label class="field">Role<input name="contactRole" type="text" maxlength="80" placeholder="e.g. FOH engineer"></label>
+            <label class="field">Phone<input name="contactPhone" type="tel" maxlength="40"></label>
+            <label class="field">Email<input name="contactEmail" type="email" maxlength="120"></label>
+          </div>
+
+          <h2>Production notes</h2>
+          <label class="field">
+            <span class="sr-only">Production notes</span>
+            <textarea name="notes" rows="7" placeholder="Changeover time, power requirements, backline supplied, hospitality, etc."></textarea>
+          </label>
+        </form>
+
+        <div class="side-col">
+          <section class="card">
+            <h2>Projects on this device</h2>
+            <div class="btn-row">
+              <button class="btn primary" id="btn-new-project"><span data-icon="filePlus"></span><span>New project</span></button>
+              <button class="btn" id="btn-dup-project"><span data-icon="copy"></span><span>Duplicate</span></button>
+              <button class="btn" id="btn-demo"><span data-icon="sparkle"></span><span>Load demo</span></button>
+            </div>
+            <ul id="project-list" class="project-list"></ul>
+          </section>
+
+          <section class="card">
+            <h2>Backup &amp; transfer</h2>
+            <p class="muted">Projects auto-save in this browser only. Download a JSON backup to move a project to another device or share it with a venue.</p>
+            <div class="btn-row">
+              <button class="btn" id="btn-export-json-2"><span data-icon="download"></span><span>Save JSON backup</span></button>
+              <button class="btn" id="btn-import-json-2"><span data-icon="upload"></span><span>Open JSON backup</span></button>
+            </div>
+          </section>
+
+          <section class="card danger-card">
+            <h2>Reset</h2>
+            <p class="muted">Clear all stage items and channels from this project. Show details are kept.</p>
+            <button class="btn danger" id="btn-reset-project"><span data-icon="reset"></span><span>Clear stage &amp; channels</span></button>
+          </section>
+
+          <section class="card">
+            <h2>Privacy</h2>
+            <p class="muted">Everything stays on this device in your browser's local storage. Nothing is uploaded. Clearing your browser data will remove saved projects — keep JSON backups.</p>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Print views are generated into here on demand. -->
+  <div id="print-root"></div>
+
+  <dialog id="dlg-print" class="dialog" aria-labelledby="dlg-print-title">
+    <form method="dialog" class="dialog-body" id="print-form">
+      <h2 id="dlg-print-title">Print / Save as PDF</h2>
+      <fieldset class="seg">
+        <legend>Document</legend>
+        <label><input type="radio" name="mode" value="combined" checked> Combined production pack <span class="muted">(stage plot, then channel list)</span></label>
+        <label><input type="radio" name="mode" value="stage"> Stage plot only</label>
+        <label><input type="radio" name="mode" value="channels"> Channel / input list only</label>
+      </fieldset>
+      <fieldset class="seg">
+        <legend>Include</legend>
+        <label><input type="checkbox" name="notes" checked> Production notes</label>
+        <label><input type="checkbox" name="contact" checked> Contact details</label>
+        <label><input type="checkbox" name="key" checked> Stage item key (labels, notes, channels)</label>
+        <label><input type="checkbox" name="badges" checked> Channel numbers on stage plot</label>
+      </fieldset>
+      <label class="field">Paper size
+        <select name="paper">
+          <option value="A4">A4 landscape</option>
+          <option value="letter">US Letter landscape</option>
+        </select>
+      </label>
+      <p class="muted small">Your browser's print dialog will open. To get a PDF, choose <strong>“Save as PDF”</strong> (or “Microsoft Print to PDF”) as the destination. For best results, turn off browser headers/footers and enable background graphics.</p>
+      <div class="dialog-actions">
+        <button class="btn" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" value="print" id="btn-do-print"><span data-icon="printer"></span><span>Open print dialog</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-confirm" class="dialog" aria-labelledby="dlg-confirm-title">
+    <form method="dialog" class="dialog-body">
+      <h2 id="dlg-confirm-title"></h2>
+      <p id="dlg-confirm-msg"></p>
+      <div class="dialog-actions" id="dlg-confirm-actions"></div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <input type="file" id="file-json" accept=".json,application/json" hidden>
+  <input type="file" id="file-csv" accept=".csv,text/csv,text/plain" hidden>
+
+  <noscript><p class="noscript">StagePlan needs JavaScript enabled to run. All processing happens locally in your browser.</p></noscript>
+
+  <script src="js/icons.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
