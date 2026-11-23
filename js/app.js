@@ -856,8 +856,24 @@
     $('#library-sheet-list').innerHTML = libraryMarkup(ui.libFilterSheet);
   }
 
-  function renderStage() {
+  // Hidden panels are not rebuilt on every change; they're marked dirty and rendered when shown.
+  const dirty = { stage: false, channels: false, project: false };
+  function panelShown(name) {
+    if (!$('#view-editor').hidden && !$('#panel-' + name).hidden) return true;
+    dirty[name] = true;
+    return false;
+  }
+  function renderDirty() {
     if (!state) return;
+    const tab = prefs.tab;
+    if (tab === 'stage' && dirty.stage) { renderStage(); renderInspector(); }
+    if (tab === 'channels' && dirty.channels) renderChannels();
+    if (tab === 'project' && dirty.project) renderProject();
+  }
+
+  function renderStage() {
+    if (!state || !panelShown('stage')) return;
+    dirty.stage = false;
     const svg = $('#stage-svg');
     const a = document.activeElement;
     const focusItem = a && svg.contains(a) && a.closest('.item') ? a.closest('.item').dataset.id : null;
@@ -1223,7 +1239,7 @@
   }
 
   function renderInspector() {
-    if (!state) return;
+    if (!state || !panelShown('stage')) return;
     const box = $('#inspector');
     const f = captureFocus(box);
     const it = getItem(ui.selectedId);
@@ -1473,6 +1489,8 @@
 
   function renderChannels() {
     if (!state) return;
+    if (!panelShown('channels')) { renderChMeta(); return; }
+    dirty.channels = false;
     const body = $('#ch-body');
     const f = captureFocus(body);
     const q = ui.chFilter.trim().toLowerCase();
@@ -1723,7 +1741,8 @@
   }
 
   function renderProject() {
-    if (!state) return;
+    if (!state || !panelShown('project')) return;
+    dirty.project = false;
     const form = $('#form-project');
     const p = state.project;
     for (const f of PROJECT_FIELDS) {
@@ -1733,6 +1752,7 @@
     renderPresetChips();
   }
   function renderPresetChips() {
+    if (!panelShown('project')) return;
     const box = $('#stage-presets');
     const f = captureFocus(box);
     box.innerHTML = sizeChipsMarkup(null, state.project.stageWidth, state.project.stageDepth).replace(/data-size="([^"]+)"/g, 'data-size="$1" data-fk="size:$1"');
@@ -2304,6 +2324,7 @@
         $('.skip-link').setAttribute('href', '#main-home');
       } else {
         $('.skip-link').setAttribute('href', '#main');
+        renderDirty();
         requestAnimationFrame(() => { positionSeg(); applyZoom(); });
       }
     };
@@ -2323,7 +2344,8 @@
       $('#panel-' + t).hidden = !on;
     }
     positionSeg();
-    if (tab === 'stage') { renderStage(); requestAnimationFrame(applyZoom); }
+    renderDirty();
+    if (tab === 'stage') requestAnimationFrame(applyZoom);
   }
 
   function positionSeg() {
@@ -2542,11 +2564,10 @@
     });
   }
 
-  let stageDirty = false;
   const RENDER = {
     header: renderHeader,
     stage: renderStage,
-    stageIfVisible: () => { if (!$('#panel-stage').hidden) renderStage(); else stageDirty = true; },
+    stageIfVisible: renderStage,
     inspector: renderInspector,
     insList: renderItemList,
     channels: renderChannels,
@@ -2577,7 +2598,7 @@
       else { const s = $('#lib-search'); s.focus(); }
     });
     // Glass buttons and chips get the pointer sheen.
-    $$('.btn.glass, .btn.primary, .segmented, .hud, .float-panel').forEach((el) => el.classList.add('sheen'));
+    $$('.btn.glass, .btn.primary').forEach((el) => el.classList.add('sheen'));
 
     loadPrefs();
     applyTheme();
@@ -2599,7 +2620,6 @@
     bindGlobal();
     bindPointerEffects();
     $('#ch-warnings').checked = ui.showWarnings;
-    $('#tab-stage').addEventListener('click', () => { if (stageDirty) { stageDirty = false; renderStage(); } });
 
     if (!storageOK) toast('Browser storage is unavailable, so changes won’t be kept. Save a project file to back up your work.', { type: 'error', timeout: 9000 });
 

@@ -23,8 +23,8 @@
   --r-lg: 20px;
   --r-xl: 26px;
 
-  --blur: 28px;
-  --sat: 1.9;
+  --blur: 20px;
+  --sat: 1.8;
 
   /* Light appearance */
   --bg: #f2f2f7;
@@ -116,7 +116,6 @@ body {
   letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   overflow: hidden;
 }
 button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
@@ -154,19 +153,15 @@ kbd {
 [hidden] { display: none !important; }
 
 /* -------------------------------------------------------------- ambient */
-.ambient { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--bg); }
-.orb {
-  position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%;
-  filter: blur(90px); opacity: var(--orb-opacity);
-  animation: drift 38s ease-in-out infinite alternate;
-}
-.o1 { background: var(--orb-1); top: -22vmax; left: -12vmax; }
-.o2 { background: var(--orb-2); bottom: -26vmax; right: -14vmax; animation-delay: -12s; animation-duration: 44s; }
-.o3 { background: var(--orb-3); top: 38%; left: 42%; width: 32vmax; height: 32vmax; opacity: calc(var(--orb-opacity) * 0.55); animation-delay: -24s; }
-@keyframes drift {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(6vmax, 4vmax, 0) scale(1.08); }
-  100% { transform: translate3d(-4vmax, 7vmax, 0) scale(0.96); }
+/* Static, filter-free gradients: an animated or blurred backdrop would force every glass
+   panel to re-blur on every frame, which is the single most expensive thing on the GPU. */
+.ambient {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60vmax 50vmax at 8% 0%, color-mix(in srgb, var(--orb-1) calc(var(--orb-opacity) * 100%), transparent), transparent 70%),
+    radial-gradient(60vmax 55vmax at 100% 100%, color-mix(in srgb, var(--orb-2) calc(var(--orb-opacity) * 100%), transparent), transparent 70%),
+    radial-gradient(40vmax 35vmax at 60% 55%, color-mix(in srgb, var(--orb-3) calc(var(--orb-opacity) * 55%), transparent), transparent 70%),
+    var(--bg);
 }
 
 /* ---------------------------------------------------------- liquid glass */
@@ -511,16 +506,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width
 .stage-svg {
   margin: auto; width: 100%; height: 100%; display: block; flex: none;
   touch-action: none; user-select: none; -webkit-user-select: none;
-  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.14));
 }
-:root[data-theme="dark"] .stage-svg { filter: drop-shadow(0 18px 50px rgba(0, 0, 0, 0.5)); }
 .stage-svg .item { cursor: grab; outline: none; transition: opacity 0.2s; }
 .stage-svg .item:active { cursor: grabbing; }
 .stage-svg .item .sel, .stage-svg .item .focus-ring, .stage-svg .item .hover-ring { display: none; }
 .stage-svg .item.selected .sel { display: block; }
 .stage-svg .item:focus-visible .focus-ring { display: block; }
 .stage-svg .item:hover .hover-ring { display: block; }
-.stage-svg .item:hover .body { filter: brightness(1.12) saturate(1.15); }
 .stage-svg .item.selected .hover-ring { display: none; }
 
 .canvas-empty {
@@ -648,8 +640,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width
   position: relative; flex: none;
   display: inline-flex; align-items: center; gap: 6px;
   height: 32px; padding: 0 13px 0 10px; border-radius: 999px; border: 0;
-  background: var(--glass-bg); color: var(--text);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+  background: var(--glass-bg-strong); color: var(--text);
   box-shadow: var(--shadow-sm), inset 0 0 0 0.5px var(--glass-border);
   font-size: 13px; font-weight: 500;
   transition: transform 0.45s var(--spring), box-shadow 0.25s, background 0.2s;
@@ -675,8 +666,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width
   position: sticky; top: 0; z-index: 2;
   text-align: left; font-size: 12px; font-weight: 600; color: var(--text-2);
   padding: 12px 8px 10px; border-bottom: 0.5px solid var(--sep);
-  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
-  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  background: color-mix(in srgb, var(--bg-2) 94%, transparent);
 }
 .ch-table td { padding: 3px 4px; border-bottom: 0.5px solid var(--sep); vertical-align: middle; transition: background 0.15s; }
 .ch-table tbody tr:last-child td { border-bottom: 0; }
@@ -784,7 +774,7 @@ dialog { color: var(--text); }
 .sheet, .alert {
   border: 0; padding: 0;
   background: var(--glass-bg-strong);
-  -webkit-backdrop-filter: blur(40px) saturate(1.8); backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8); backdrop-filter: blur(24px) saturate(1.8);
   box-shadow: var(--shadow-lg), inset 0 0 0 0.5px var(--glass-border);
   opacity: 0; transform: translateY(16px) scale(0.97);
   transition: opacity 0.25s var(--ease), transform 0.5s var(--spring), display 0.5s allow-discrete, overlay 0.5s allow-discrete;
@@ -805,8 +795,7 @@ dialog { color: var(--text); }
   position: sticky; top: 0; z-index: 5;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
   margin: 0 -20px 6px; padding: 14px 16px 12px;
-  background: color-mix(in srgb, var(--glass-bg-strong) 85%, transparent);
-  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  background: var(--glass-bg-strong);
   border-bottom: 0.5px solid var(--sep);
 }
 .sheet-head h2 { font-size: 16px; font-weight: 600; text-align: center; letter-spacing: -0.015em; }
@@ -854,7 +843,7 @@ dialog { color: var(--text); }
   display: flex; align-items: center; gap: 10px;
   padding: 9px 10px 9px 14px; border-radius: 999px; max-width: calc(100vw - 32px);
   background: var(--glass-bg-strong);
-  -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8); backdrop-filter: blur(20px) saturate(1.8);
   box-shadow: var(--shadow-lg), inset 0 0 0 0.5px var(--glass-border);
   font-size: 13.5px; font-weight: 500;
   animation: toast-in 0.55s var(--spring);
@@ -955,8 +944,7 @@ dialog { color: var(--text); }
   .ch-table tr {
     display: grid; grid-template-columns: 34px 40px minmax(0, 1fr);
     padding: 6px 8px 8px; border-radius: var(--r-lg);
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(24px) saturate(1.8); backdrop-filter: blur(24px) saturate(1.8);
+    background: var(--glass-bg-strong);
     box-shadow: var(--shadow-sm), inset 0 0 0 0.5px var(--glass-border);
   }
   .ch-table td { display: flex; align-items: center; border: 0; padding: 2px 4px; grid-column: 1 / -1; width: auto !important; text-align: left !important; min-width: 0; }
@@ -995,13 +983,12 @@ dialog { color: var(--text); }
 /* ======================================================= accessibility */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
-  .orb { animation: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
   :root { --glass-bg: #ffffff; --glass-bg-strong: #ffffff; }
   :root[data-theme="dark"] { --glass-bg: #1c1c1e; --glass-bg-strong: #242426; }
-  .glass, .chip, .sheet, .alert, .toast, .menu, .ch-table th, .sheet-head, .ch-table tr { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-  .orb { display: none; }
+  .glass, .sheet, .alert, .toast, .menu { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .ambient { background: var(--bg); }
 }
 @media (prefers-contrast: more) {
   :root { --text-2: rgba(60, 60, 67, 0.92); --text-3: rgba(60, 60, 67, 0.75); --sep: rgba(60, 60, 67, 0.45); --glass-bg: #ffffff; --fill-2: rgba(120, 120, 128, 0.16); }
@@ -1010,7 +997,7 @@ dialog { color: var(--text); }
   .btn.ghost, .btn.plain { text-decoration: underline; text-underline-offset: 3px; }
 }
 @media (forced-colors: active) {
-  .glass::before, .sheen::after, .orb { display: none; }
+  .glass::before, .sheen::after, .ambient { display: none; }
   .btn, .chip, .seg-btn[aria-selected="true"], .size-chip, .tpl { border: 1px solid ButtonText; }
   .seg-thumb { background: Highlight; }
 }
